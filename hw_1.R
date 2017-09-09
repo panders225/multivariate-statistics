@@ -188,3 +188,86 @@ persp(bivn.kde, phi=20, theta=35, ticktype = 'detailed'
 
 
 draw.ellipse()
+
+# question 6
+
+ellipse_draw <-function(mu_vec=c(1,1), cov_mat, title="Sigma 1", seed=1738)
+{ 
+
+         car::ellipse( center=mu_vec , shape=cov_mat , radius=sqrt(qchisq(p=0.95, df=2)) , lwd=5
+                  , add=FALSE
+                  , xlab="x-axis"
+                  , ylab="y-axis"
+                  , grid=TRUE
+                  , main=title
+                  , col = "black"
+                  )
+           
+set.seed(seed)                          
+rando <- mvtnorm::rmvnorm(n=5000, mean=c(1,1), sigma=cov_mat)
+points(rando)              
+
+rando_df <- data.frame(rando)
+names(rando_df) <- tolower(names(rando_df))
+base_df <- data.frame(point=0, in_out=9)
+
+for (i in 1:nrow(rando_df))
+  {
+  temp <- t(matrix(c(rando_df[i,1] - 1, rando_df[i,2] - 1))) %*%
+   solve(cov_mat) %*%
+   matrix(c(rando_df[i,1] - 1, rando_df[i,2] - 1))
+ 
+temp_df <- data.frame(point=temp[1,1])
+temp_df$in_out <- ifelse(
+  temp_df$point <= qchisq(p=0.95, df=2), 1, 0  
+                        )
+  base_df <- rbind(base_df, temp_df)
+    }
+
+base_df <- base_df[-1,]
+table(base_df$in_out) / nrow(base_df)
+}
+
+
+# Execute the functions
+# 1
+ellipse_draw(cov_mat=matrix(c(1.00, 0.80, 0.80, 1.00), nrow=2)
+             , seed=1
+             , title="Sigma 1")
+# 2
+ellipse_draw(cov_mat=matrix(c(1.00, 0.0, 0.0, 1.00), nrow=2)
+             , seed=2
+             , title="Sigma 2")
+# 3
+ellipse_draw(cov_mat=matrix(c(1.00, -0.80, -0.80, 1.00), nrow=2)
+             , seed=3
+             , title="Sigma 3")
+#4
+ellipse_draw(cov_mat=matrix(c(1.00, 0.40, 0.40, 0.25), nrow=2)
+             , seed=4
+             , title="Sigma 4")
+# 5
+ellipse_draw(cov_mat=matrix(c(1.00, 0.0, 0.0, 0.25), nrow=2)
+             , seed=5
+             , title="Sigma 5")
+# 6
+ellipse_draw(cov_mat=matrix(c(1.00, -0.40, -0.40, 0.25), nrow=2)
+             , seed=6
+             , title="Sigma 6")
+# 7
+ellipse_draw(cov_mat=matrix(c(0.25, 0.40, 0.40, 1.00), nrow=2)
+             , seed=7
+             , title="Sigma 7")
+# 8
+ellipse_draw(cov_mat=matrix(c(0.25, 0.0, 0.0, 1.00), nrow=2)
+             , seed=8
+             , title="Sigma 8")
+# 9
+ellipse_draw(cov_mat=matrix(c(0.25, -0.40, -0.40, 1.00), nrow=2)
+             , seed=9
+             , title="Sigma 9")
+
+
+# on average, I would expect that probability to be 0.95
+
+
