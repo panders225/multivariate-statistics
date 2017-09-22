@@ -3,11 +3,18 @@
 # Philip Anderson
 # HW02 program
 
+######################
 # import third-party modules
+######################
+
+library("car")
 library("MASS")
 library("tidyverse")
 
+
+######################
 # Question 3
+######################
 
 used_cars <- read.csv("C:/Users/Philip/Schools/TAMU/STAT_636/homework/hw_02/used_cars.csv")
 colnames(used_cars) <- tolower(colnames(used_cars)) 
@@ -34,18 +41,66 @@ used_cars$age ** car_bc_lambda
 
 # let's get some visuals
 par(mfrow=c(2,1))
-qqnorm(used_cars$age)
+qqnorm(used_cars$age, main="Original Age Variable")
 qqline(used_cars$age)
 
-qqnorm(used_cars$age ** car_bc_lambda)
+qqnorm(used_cars$age ** car_bc_lambda, main="Transformed Age Variable")
 qqline(used_cars$age ** car_bc_lambda)
+par(mfrow=c(1,1)) # reset
 
-par(mfrow=c(1,1))
-plot(density(used_cars$age))
-lines(density(used_cars$age ** car_bc_lambda)
-      , lty=2)
-
+# both were normal the whole time anyway
 shapiro.test(used_cars$age)
 shapiro.test(used_cars$age ** car_bc_lambda)
 
+
+# conduct the bc transformation for the price variable
+
+bc_price <- MASS::boxcox(price ~ 1
+                         , data=used_cars
+                         , lambda=seq(-6, 6, by=0.1)
+                         )
+
+Cox <- data.frame(bc_x=bc_price$x, bc_y=bc_price$y)
+(price_bc_lambda <- Cox[with(Cox, order(-Cox$bc_y)) , ][1,1])
+
+
+# graphics
+par(mfrow=c(2,1))
+qqnorm(used_cars$price, main="Original Price Variable")
+qqline(used_cars$price)
+
+qqnorm(used_cars$price ** price_bc_lambda, main="Transformed Price Variable")
+qqline(used_cars$price ** price_bc_lambda)
+
+shapiro.test(used_cars$price)
+shapiro.test(used_cars$price ** price_bc_lambda)
+
+# multivariate BC transformation for both variables
+mv_bc <- car::powerTransform(
+                    cbind(used_cars$age, used_cars$price)
+                    , family="bcPower"
+                    )
+
+
+glimpse(mv_bc)
+(mv_lambda_age <- mv_bc$lambda[1])
+(mv_lambda_price <- mv_bc$lambda[2])
+
+car_bc_lambda
+price_bc_lambda
+
+shapiro.test(used_cars$age ** mv_lambda_age)
+shapiro.test(used_cars$price ** mv_lambda_price)
+
+# multivariate normality transformation is inferior to univariate transformations
+# in assessing univariate normality
+
+
+
+##################
+# Question 4
+##################
+
+sweat <- read.csv("C:/Users/Philip/Schools/TAMU/STAT_636/homework/hw_02/sweat.csv")
+dim(sweat)
 
