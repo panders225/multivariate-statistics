@@ -9,8 +9,8 @@
 
 library("car")
 library("MASS")
+library("MVN")
 library("tidyverse")
-
 
 ######################
 # Question 3
@@ -102,5 +102,29 @@ shapiro.test(used_cars$price ** mv_lambda_price)
 ##################
 
 sweat <- read.csv("C:/Users/Philip/Schools/TAMU/STAT_636/homework/hw_02/sweat.csv")
-dim(sweat)
+names(sweat) <- tolower(names(sweat)) # drop it low
+str(sweat)
+
+# part a - construct univariate QQ plots for each of the three variables
+shapiro.test(sweat$sweat)
+shapiro.test(sweat$sodium)
+shapiro.test(sweat$potassium)
+# everything appears staunchly normal heading into this next piece 
+
+par(mfrow=c(1,1))
+qqnorm(sweat$sweat, main="sweat$sweat Normal Q-Q Plot")
+qqline(sweat$sweat)
+
+qqnorm(sweat$sodium, main="sweat$sodium Normal Q-Q Plot")
+qqline(sweat$sodium)
+
+qqnorm(sweat$potassium, main="sweat$potassium Normal Q-Q Plot")
+qqline(sweat$potassium)
+
+pairs(sweat)
+
+MVN::mardiaTest(data=sweat, qqplot=T)
+# multivariate assumption seems reasonable
+
+# compute the 95% confidence ellipsoid for mu
 
