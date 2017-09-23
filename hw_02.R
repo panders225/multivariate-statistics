@@ -126,5 +126,69 @@ pairs(sweat)
 MVN::mardiaTest(data=sweat, qqplot=T)
 # multivariate assumption seems reasonable
 
-# compute the 95% confidence ellipsoid for mu
+# B - compute the 95% confidence ellipsoid for mu
+# n (xbar - mu)' S**-1 (xbar - mu) < c2
+
+x_bar <- colMeans(sweat)
+S <- var(sweat)
+
+(ee <- eigen(S))
+(lambda <- ee$values)
+(e_vec <- ee$vectors)
+e_vec[,1]
+
+# the ellipse will be centered at x_bar, which are the column means
+x_bar
+
+
+# the axes for the ellipse are given by
+c <- sqrt(((p * (n - 1)) / (n * (n - p))) * qf(1-alpha, p, n-p))
+c / sqrt(lambda[1]) * e_vec[,1]
+
+((p * (n - 1)) / (n * (n - p))) * qf(1-alpha, p, n-p)
+sqrt(n * t(x_bar - mu_0) %*% solve(S) %*% (x_bar - mu_0))
+
+
+# C - compute 95% simultanous T2 confidence intervals for the mean components
+
+(x_bar <- colMeans(sweat))
+(n <- nrow(sweat))
+(S <- var(sweat))
+(p <- ncol(sweat))
+(alpha <- 0.05)
+(c2 <- (n - 1) * p * qf(1 - alpha, p, n - p) / (n - p))
+
+# print out the T2 CI's
+x_bar
+ci_sim_1 <- x_bar[1] + c(-1, 1) * sqrt(c2 * S[1, 1] / n)
+ci_sim_2 <- x_bar[2] + c(-1, 1) * sqrt(c2 * S[2, 2] / n)
+ci_sim_3 <- x_bar[3] + c(-1, 1) * sqrt(c2 * S[3, 3] / n)
+
+rbind(
+cbind(ci_sim_1[1], x_bar[1], ci_sim_1[2])
+, cbind(ci_sim_2[1], x_bar[2], ci_sim_2[2])
+, cbind(ci_sim_3[1], x_bar[3], ci_sim_3[2])
+) 
+
+# D -  Compute the 95% Bonferroni simultaneous CIs
+x_bar
+ci_bon_1 <- x_bar[1] + c(-1, 1) * qt(1 - alpha / (2 * p), n - 1) * sqrt(S[1, 1] / n)
+ci_bon_2 <- x_bar[2] + c(-1, 1) * qt(1 - alpha / (2 * p), n - 1) * sqrt(S[2, 2] / n)
+ci_bon_3 <- x_bar[3] + c(-1, 1) * qt(1 - alpha / (2 * p), n - 1) * sqrt(S[3, 3] / n)
+
+rbind(
+cbind(ci_bon_1[1], x_bar[1], ci_bon_1[2])
+, cbind(ci_bon_2[1], x_bar[2], ci_bon_2[2])
+, cbind(ci_bon_3[1], x_bar[3], ci_bon_3[2])
+) 
+
+# E - carry out a Hotelling's T2 of the null hypothesis mu0 <- c(4.0, 45.0, 10.0)
+
+mu_0 <- c(4.0, 45.0, 10.0)
+
+(T2 <- n * t(x_bar - mu_0) %*% solve(S) %*% (x_bar - mu_0))
+(p_value_par <- 1 - pf((n - p) * T2 / ((n - 1) * p), p, n - p))
+
+
+# F - is this consistent with what was seen in part B?
 
