@@ -7,10 +7,45 @@
 # import third-party modules
 ######################
 
+library("biotools")
 library("car")
 library("MASS")
 library("MVN")
 library("tidyverse")
+
+##################
+# Question 1
+##################
+
+(X <- matrix(c(3, 4, 5, 4, 6, 4, 7, 7), nrow=4))
+(n <- nrow(X))
+
+# x_bar MLE
+(x_bar <- colMeans(X))
+# sigma_hat MLE
+((n - 1) / n) # component 1
+var(X) # component 2
+((n - 1) / n) * var(X) # final
+
+
+##################
+# Question 2
+##################
+library("mvtnorm")
+library("Matrix")
+sigma <- rWishart(n=1, df=6, toeplitz(6:1/10)) %>% as.matrix()
+
+sigma <- matrix(rnorm(36), 6)
+sigma <- Matrix::forceSymmetric(sigma)
+
+
+
+X1 <- mvtnorm::rmvnorm(n=1, mean=c(1,2,3,4,5,6), sigma )
+
+
+
+
+help("rWishart")
 
 ######################
 # Question 3
@@ -191,4 +226,104 @@ mu_0 <- c(4.0, 45.0, 10.0)
 
 
 # F - is this consistent with what was seen in part B?
+
+
+# G - test the same null hypothesis as in part E, but using the bootstraped test statistic
+
+
+##################
+# Question 5
+##################
+
+# import the peanut data
+
+peanut <- read.csv("C:/Users/Philip/Schools/TAMU/STAT_636/homework/hw_02/peanut.csv")
+names(peanut) <- tolower(names(peanut))
+str(peanut)
+
+# assess the landscape
+table(peanut$location); table(peanut$variety); table(peanut$location, peanut$variety)
+
+# due to the small sample size, we will need to evaluate the multivariate normality 
+# of the response variables
+# using the mardia test
+
+MVN::mardiaTest(data=cbind(peanut$x_1, peanut$x_2, peanut$x_3))
+
+# we will now need to assess the homogeneity of the variances 
+biotools::boxM(data=peanut[, -c(1,2,6)], grouping=factor(peanut[, c(2)]))
+biotools::boxM(data=peanut[, -c(1,2,6)], grouping=factor(peanut[, c(2)]))
+
+# covariance matrices appear good across both groupings of factors
+
+# set up the model
+# response matrix
+(Y <- cbind(peanut$x_1, peanut$x_2, peanut$x_3))
+
+fit1 <- manova(Y ~ peanut$location*peanut$variety)
+summary(fit1, test="Wilks")
+
+fit2 <- manova(Y ~ peanut$variety*peanut$location)
+summary(fit2, test="Wilks")
+
+# order seems to have an impact on the obtained results
+
+aov(fit1)
+summary(fit1, test="Wilks")
+test <- summary.manova(fit1, test="Wilks")
+
+# part B - construct the two-way Sums of Squares MANOVA table
+
+test 
+
+str(test)
+
+test$SS
+
+# we are going to now extract Wilk's lambda statistic for each main effect 
+# and interaction, and calculate the p-value
+
+# preliminaries
+g <- length(unique(peanut$location))
+b <- length(unique(peanut$variety))
+n <- 2 # replications per factor interaction
+p <- 3 # output parameters
+
+# factor 2
+
+# compute wilks lambda
+(fact_one <- det(test$SS$Residuals) / det(test$SS$`peanut$location` + test$SS$Residuals))
+
+const <- (((g * b * (n - 1)) - p + 1) / 2) / ((abs((g - 1) - p) + 1) / 2)
+(test_stat <- const * ((1 - fact_one) / fact_one))
+
+(nu1 <- abs((g - 1) - p) + 1)
+(nu2 <- (g * b * (n - 1)) - p + 1 )
+
+1 - pf(test_stat, df1=nu1, df2=nu2)
+
+
+# factor 2
+
+
+(fact_two <- det(test$SS$Residuals) / det(test$SS$`peanut$variety` + test$SS$Residuals))
+const <- (((g * b * (n - 1)) - p + 1) / 2) / ((abs((b - 1) - p) + 1) / 2)
+(test_stat <- const * ((1 - fact_two) / fact_two))
+
+(nu1 <- abs((b - 1) - p) + 1)
+(nu2 <- (g * b * (n - 1)) - p + 1 )
+
+1 - pf(test_stat, df1=nu1, df2=nu2)
+
+
+# interaction term
+
+(int <- det(test$SS$Residuals) / det(test$SS$`peanut$location:peanut$variety`+ test$SS$Residuals))
+const <- (((g * b * (n - 1)) - p + 1) / 2) / ((abs(((g - 1) * (b - 1)) - p) + 1) / 2)
+(test_stat <- const * ((1 - int) / int))
+
+(nu1 <- abs(((g - 1) * (b - 1)) - p) + 1)
+(nu2 <- (g * b * (n - 1)) - p + 1 )
+
+1 - pf(test_stat, df1=nu1, df2=nu2)
 
