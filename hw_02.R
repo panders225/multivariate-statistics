@@ -27,26 +27,6 @@ library("tidyverse")
 var(X) # component 2
 ((n - 1) / n) * var(X) # final
 
-
-##################
-# Question 2
-##################
-library("mvtnorm")
-library("Matrix")
-sigma <- rWishart(n=1, df=6, toeplitz(6:1/10)) %>% as.matrix()
-
-sigma <- matrix(rnorm(36), 6)
-sigma <- Matrix::forceSymmetric(sigma)
-
-
-
-X1 <- mvtnorm::rmvnorm(n=1, mean=c(1,2,3,4,5,6), sigma )
-
-
-
-
-help("rWishart")
-
 ######################
 # Question 3
 ######################
@@ -70,12 +50,12 @@ glimpse(bc_age)
 Cox <- data.frame(bc_age$x, bc_age$y)
 Cox2 <- dplyr::arrange(Cox, desc(bc_age.y))
 # extract the lambda
-car_bc_lambda <- Cox2[1,1]
+(car_bc_lambda <- Cox2[1,1])
 
 used_cars$age ** car_bc_lambda
 
 # let's get some visuals
-par(mfrow=c(2,1))
+par(mfrow=c(1,1))
 qqnorm(used_cars$age, main="Original Age Variable")
 qqline(used_cars$age)
 
@@ -100,7 +80,7 @@ Cox <- data.frame(bc_x=bc_price$x, bc_y=bc_price$y)
 
 
 # graphics
-par(mfrow=c(2,1))
+par(mfrow=c(1,1))
 qqnorm(used_cars$price, main="Original Price Variable")
 qqline(used_cars$price)
 
@@ -130,7 +110,8 @@ shapiro.test(used_cars$price ** mv_lambda_price)
 # multivariate normality transformation is inferior to univariate transformations
 # in assessing univariate normality
 
-
+(multi_mat <- cbind(used_cars$age ** mv_lambda_age, used_cars$price ** mv_lambda_price))
+MVN::mardiaTest(data=multi_mat, qqplot=T)
 
 ##################
 # Question 4
