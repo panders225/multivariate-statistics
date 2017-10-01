@@ -317,11 +317,11 @@ summary(fit2, test="Wilks")
 
 # order seems to have an impact on the obtained results
 
-aov(fit1)
-summary(fit1, test="Wilks")
-test <- summary.manova(fit1, test="Wilks")
+fit3 <- manova(Y ~ peanut$location + peanut$variety)
+summary(fit3, test="Wilks")
 
 # part B - construct the two-way Sums of Squares MANOVA table
+test <- summary(fit1, test="Wilks")
 
 test 
 
@@ -338,7 +338,11 @@ b <- length(unique(peanut$variety))
 n <- 2 # replications per factor interaction
 p <- 3 # output parameters
 
-# factor 2
+diag(test$SS$`peanut$location`)
+
+aov(fit1)
+
+# factor 1
 
 # compute wilks lambda
 (fact_one <- det(test$SS$Residuals) / det(test$SS$`peanut$location` + test$SS$Residuals))
