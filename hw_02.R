@@ -9,6 +9,7 @@
 
 library("biotools")
 library("car")
+library("DescTools")
 library("MASS")
 library("MVN")
 library("tidyverse")
@@ -151,19 +152,35 @@ S <- var(sweat)
 (ee <- eigen(S))
 (lambda <- ee$values)
 (e_vec <- ee$vectors)
-e_vec[,1]
+
+(p <- ncol(sweat))
+(n <- nrow(sweat))
 
 # the ellipse will be centered at x_bar, which are the column means
 x_bar
-
+alph <- 0.05 # confidence level
 
 # the axes for the ellipse are given by
-c <- sqrt(((p * (n - 1)) / (n * (n - p))) * qf(1-alpha, p, n-p))
-c / sqrt(lambda[1]) * e_vec[,1]
+# axis one
+(c <- sqrt(((p * (n - 1)) / (n * (n - p))) * qf(1 - alph, p, n-p)))
+(c / sqrt(lambda[1])) * e_vec[,1]
 
-((p * (n - 1)) / (n * (n - p))) * qf(1-alpha, p, n-p)
+# axis two
+(c / sqrt(lambda[2])) * e_vec[,2]
+
+# axis three
+(c / sqrt(lambda[3])) * e_vec[,3]
+
+
+
+((p * (n - 1)) / (n * (n - p))) * qf(1-alph, p, n-p)
 sqrt(n * t(x_bar - mu_0) %*% solve(S) %*% (x_bar - mu_0))
 
+# all ellipsoidal points should be within 95% of fixed distance
+
+check_inclusion <- function(n, p, x_bar, S, mu_0, alph=0.05){
+n * t(x_bar - mu_0) %*% solve(S) %*% (x_bar - mu_0) <= ((p * (n - 1)) / (n * (n - p))) * qf(1-alph, p, n-p)
+}
 
 # C - compute 95% simultanous T2 confidence intervals for the mean components
 
@@ -180,11 +197,15 @@ ci_sim_1 <- x_bar[1] + c(-1, 1) * sqrt(c2 * S[1, 1] / n)
 ci_sim_2 <- x_bar[2] + c(-1, 1) * sqrt(c2 * S[2, 2] / n)
 ci_sim_3 <- x_bar[3] + c(-1, 1) * sqrt(c2 * S[3, 3] / n)
 
-rbind(
+t2_cis <- rbind(
 cbind(ci_sim_1[1], x_bar[1], ci_sim_1[2])
 , cbind(ci_sim_2[1], x_bar[2], ci_sim_2[2])
 , cbind(ci_sim_3[1], x_bar[3], ci_sim_3[2])
-) 
+) %>% data.frame() 
+
+names(t2_cis) <- c('left', 'mean', 'right')
+t2_cis
+
 
 # D -  Compute the 95% Bonferroni simultaneous CIs
 x_bar
@@ -192,11 +213,14 @@ ci_bon_1 <- x_bar[1] + c(-1, 1) * qt(1 - alpha / (2 * p), n - 1) * sqrt(S[1, 1] 
 ci_bon_2 <- x_bar[2] + c(-1, 1) * qt(1 - alpha / (2 * p), n - 1) * sqrt(S[2, 2] / n)
 ci_bon_3 <- x_bar[3] + c(-1, 1) * qt(1 - alpha / (2 * p), n - 1) * sqrt(S[3, 3] / n)
 
-rbind(
+bon_cis <- rbind(
 cbind(ci_bon_1[1], x_bar[1], ci_bon_1[2])
 , cbind(ci_bon_2[1], x_bar[2], ci_bon_2[2])
 , cbind(ci_bon_3[1], x_bar[3], ci_bon_3[2])
-) 
+) %>% data.frame()
+
+names(bon_cis) <- c('left', 'mean', 'right')
+bon_cis
 
 # E - carry out a Hotelling's T2 of the null hypothesis mu0 <- c(4.0, 45.0, 10.0)
 
@@ -205,12 +229,56 @@ mu_0 <- c(4.0, 45.0, 10.0)
 (T2 <- n * t(x_bar - mu_0) %*% solve(S) %*% (x_bar - mu_0))
 (p_value_par <- 1 - pf((n - p) * T2 / ((n - 1) * p), p, n - p))
 
+# critical value given by:
+(((n - 1) * p) / (n -p)) * qf(1 - 0.05, n, n - p)
+
+# alt check
+DescTools::HotellingsT2Test(x=sweat, mu=c(4.0, 45.0, 10.0))
 
 # F - is this consistent with what was seen in part B?
+# use our function from above
+check_inclusion(n = nrow(sweat), p = ncol(sweat), x_bar = colMeans(sweat)
+                , S = var(sweat), mu_0 = c(4.0, 45.0, 10.0))
 
+check_inclusion
+(n <- nrow(sweat))
+(p <- ncol(sweat))
+(x_bar <- colMeans(sweat))
+(S <- var(sweat))
+(mu_0 <- c(4.0, 45.0, 10.0))
+
+n * t(x_bar - mu_0) %*% solve(S) %*% (x_bar - mu_0) <= ((p * (n - 1)) / (n - p)) * qf(1-alph, p, n-p)
+
+n * t(x_bar - mu_0) %*% solve(S) %*% (x_bar - mu_0)
+((p * (n - 1)) / (n - p)) * qf(1-alph, p, n-p)
 
 # G - test the same null hypothesis as in part E, but using the bootstraped test statistic
 
+# first, calculate the test statistic on our observed data
+S <- var(sweat)
+X_bar <- colMeans(sweat)
+mu_0 <- c(4.0, 45.0, 10.0)
+X_0 <- sweat - rep(1, n) %*% t(X_bar) + rep(1, n) %*% t(mu_0)
+
+colMeans(X_0)
+
+S_0 <- var(X_0)
+
+base_ts <- (det(S) / det(S_0)) ** (nrow(sweat) / 2)
+
+# now, conduct the bootstrapping
+set.seed(101)
+B <- 500
+out_out <- numeric(B)
+for (i in 1:10) {
+ hold_samp <- X_0[sample(1:20, replace=T), ]
+ init_S <- var(sweat)
+ hold_S <- var(hold_samp)
+ LR <- (det(init_S) / det(hold_S)) ** (nrow(sweat) / 2)
+ out_out[i] <- LR
+}
+
+mean(out_out > drop(base_ts))
 
 ##################
 # Question 5

@@ -46,4 +46,8 @@ double sumC(NumericVector x) {
   return total;
 }
 
+/*** R
+sumC(x = seq(1,10000000000))
+*/
+
 
