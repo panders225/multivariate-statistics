@@ -1,0 +1,117 @@
+---
+title: "Practice Exam 1"
+author: "Phil Anderson"
+date: "October 3, 2017"
+output: html_document
+---
+
+```{r, message=F}
+# Install our third-party modules
+library("tidyverse")
+```
+
+First, let's read in our data
+
+```{r}
+pref <- read.csv("C:/Users/Philip/Schools/TAMU/STAT_636/exam_prep/consumer_pref.csv")
+
+names(pref) <- tolower(names(pref))
+str(pref)
+```
+
+## Question 1-A
+Generate QQ Plots for each variable
+
+```{r}
+par(mfrow=c(2,3))
+qqnorm(pref$taste); qqline(pref$taste)
+qqnorm(pref$value); qqline(pref$value)
+qqnorm(pref$flavor); qqline(pref$flavor)
+qqnorm(pref$snack); qqline(pref$snack)
+qqnorm(pref$energy); qqline(pref$energy)
+```
+
+## Question 1-B
+Construct a 95% confidence region for the population mean vector mu.  What are its primary axes and associated half-lengths?  Note that the primary axes will be given by the eigenvectors of the matrix's variance-covariance matrix; in this case they are not readily interpretable, given the number of dimensions.  The half lengths will be given by a constant times the eigenvalues of that covariance matrix.
+
+```{r}
+(x_bar <- colMeans(pref))
+(S <- var(pref))
+(p <- ncol(pref))
+(n <- nrow(pref))
+
+pref_eig <- eigen(S)
+# axes given by:
+pref_eig$vectors
+
+#half-lengths given by:
+sqrt(pref_eig$values) * sqrt( (p * (n - p)) / (n * (n - p)) * qf(1-0.05,p, n-p )  )
+  
+```
+
+
+## Question 1-C
+Report 95% Bonferroni-based simultaneous confidence intervals for our p-variables.  How would you interpret this collection of confidence intervals, in terms of the coverage probabilities?
+
+```{r}
+# note that we are using alpha=0.025 for the two-sided coverage
+# also note that we are taking the diagonal elements of the variance-covariance matrix
+
+bon_mat <- matrix(NA, nrow=p, ncol=2)
+
+for (i in 1:p) {
+bon <- x_bar[i] + c(-1, 1) * qt(1 - 0.025 / p, n - 1) * sqrt(S[i,i] / n)
+bon_mat[i, ] <- bon
+  }
+
+cbind(bon_mat[,1], x_bar, bon_mat[,2])
+```
+
+These intervals are constructed such that we are 95% confident that they contain the true means.  Note that this is not saying that we have a 95% probability that the true mean is contained within the interval.
+
+## Question 1-D
+Carry out Hotelling's multivariate generalization of the t-test for the null hypothesis that the mean vector is equal to the null vector.
+
+```{r}
+(mu_0 <- rep(0,p))
+
+# gather our test statistic (observed)
+(T2_obs <- n * t(x_bar - mu_0) %*% solve(S) %*% (x_bar - mu_0))
+
+# gather our p-value
+1 - pf( (n - p) / ((n - 1) * p) * T2_obs , p, n-p )
+
+```
+
+We do not see evidence that our p-value is significantly different from the zero vector.
+
+
+## Question 1-E
+Use the bootstrap algorithm to compute the p-value from the previous problem.
+
+```{r}
+B <- 1000 # number of epochs
+set.seed(101)
+
+# recall that T2_obs is our observed test statistic for this procuedure
+
+# rescale our data vector
+pref_0 <- scale(pref, center=T, scale=F)
+T2_output <- numeric(B)
+
+for (i in 1:B){
+  temp <- pref_0[sample(1:n, replace=T),]
+  x_bar_temp <- colMeans(temp)
+  S_temp <- var(temp)
+  T2_b <- drop(n * t(x_bar_temp - mu_0) %*% solve(S_temp) %*% (x_bar_temp - mu_0))
+  T2_output[i] <- T2_b
+}
+
+# let's view our sampling distribution
+plot(density(T2_output), main="T2 Null Sampling Distribution")
+mtext("Observed Test Statistic in Red")
+abline(v=drop(T2_obs), col="red")
+sum(T2_output >= drop(T2_obs)) / 1000
+
+```
+
