@@ -2,7 +2,11 @@
 title: "Practice Exam 1"
 author: "Phil Anderson"
 date: "October 3, 2017"
-output: html_document
+output: 
+  html_document:
+  toc: true
+  theme: "journal"
+#  highlight: tango
 ---
 
 ```{r, message=F}

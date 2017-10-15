@@ -1,0 +1,174 @@
+---
+title: "Exam 1 Summary Sheet"
+author: "Phil"
+date: "October 10, 2017"
+output:
+  html_document:
+    highlight: tango
+    theme: readable
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+
+# Basic Matrix Operations
+Define A = 2x2 matrix
+```{r}
+A <- matrix(c(1, 2, 2, -2), nrow=2)
+A
+```
+Eigen Decomposition
+```{r}
+(ee <- eigen(A))
+
+```
+Spectral Decomposition
+```{r}
+ee$values[1] * (ee$vectors[,1] %*% t(ee$vectors[,1])) +
+  ee$values[2] * (ee$vectors[,2] %*% t(ee$vectors[,2]))
+
+```
+Determinant
+
+```{r}
+det(A)
+ee$values[1] * ee$values[2] == det(A)
+```
+Trace
+```{r}
+sum(diag(A))
+ee$values[1] + ee$values[2] == sum(diag(A))
+
+```
+We can tell that a given matrix is orthogonal if it's columns are of unit length and mututally perpendicular.
+
+```{r}
+A[,1] * t(A[,2]) 
+```
+
+A matrix will only be positive definite if the eigenvalues are all positive.
+
+```{r}
+(ee$values[1] > 0) && (ee$values[2] > 0)
+```
+
+Find the inverse of a given matrix.
+
+```{r}
+(A_inv <- solve(A))
+eigen(A_inv)
+
+```
+
+
+# Multivariate Normal Simulation
+We will need to incorporate the MASS library and set up our preliminaries.
+```{r}
+library(MASS)
+mu <- c(1, 0)
+p <- length(mu)
+n <- 100
+S <- matrix(c(1, -0.8, -0.8, 1), nrow=2)
+```
+
+Now, we can generate some random data.
+
+```{r}
+rand_out <- MASS::mvrnorm(n=n, mu=mu, Sigma=S)
+
+(x_bar_obs <- colMeans(rand_out))
+(S_obs <- var(rand_out))
+```
+
+As these are bivariate data, it can be helpful to plot them in an ellipse.
+
+```{r}
+library("plotrix")
+c2 <- qchisq(1 - 0.05, p)
+
+rho_1 <- S_obs[1, 2] / (sqrt(S_obs[1, 1]) * sqrt(S_obs[2, 2]))
+theta_1 <- acos(rho_1)
+
+lambda_obs <- eigen(S)$values
+
+plot(rand_out, xlim = c(-6, 6), ylim = c(-6, 6), xlab = expression(x[1]), 
+  ylab = expression(x[2]), pch = 20, col = "grey", asp = 1)
+
+draw.ellipse(x_bar_obs[1], x_bar_obs[2], sqrt(c2 * lambda_obs[1]), sqrt(c2 * lambda_obs[2]), 
+  angle = theta_1 * 57.2957795, deg = TRUE, border = "red", lwd = 2)
+```
+
+We can also construct the 95% confidence region for our data.  Primary axes are given by the eigenvectors of our covariance matrix; axis half-lengths will be given by some constant times the eigenvalues of that same matrix.
+
+```{r}
+p <- ncol(S_obs)
+n <- nrow(rand_out)
+ee_obs <- eigen(S_obs)
+
+ee_obs$vector
+
+sqrt(ee_obs$values) * sqrt( (p * (n - p)) / (n * (n - p)) * qf(1-0.05,p, n-p )  )
+
+```
+
+# Simultaneous Confidence Intervals
+
+### T_squared based simultaneous intervals
+
+```{r}
+c2 <- (((n - 1) * p) / (n - p)) * qf(0.95, p, n - p)
+x_bar_obs
+x_bar_obs[1] + c(-1, 1) * sqrt(c2 * S_obs[1,1] / n)
+x_bar_obs[2] + c(-1, 1) * sqrt(c2 * S_obs[2,2] / n)
+
+```
+### Bonferroni simultaneous intervals
+
+```{r}
+x_bar_obs
+x_bar_obs[1] + c(-1, 1) * qt(1 - 0.05 / (2 * p), n - 1) * sqrt(S[1,1] / n)
+x_bar_obs[2] + c(-1, 1) * qt(1 - 0.05 / (2 * p), n - 1) * sqrt(S[2,2] / n)
+
+```
+
+# T-squared inference
+
+We can see from the confidence intervals obtained that the simulated base parameters are inside of the intervals.  We can conduct an equivalent hypothesis test.
+
+```{r}
+mu_0 <- c(1,0)
+# Test Statistic
+(T2_obs <- n * t(x_bar_obs - mu_0) %*% solve(S_obs) %*% (x_bar_obs - mu_0))
+# critical value
+c2
+# p-value
+1 - pf( (n - p) / ((n - 1) * p) * T2_obs , p, n-p )
+```
+
+
+# Bootstrapping
+We can also bootstrap a sampling distribution for our data with a forced true null hypothesis and compare that to our observed data.
+
+```{r}
+B <- 1000
+set.seed(1738)
+
+rand_out_scale <- scale(rand_out, center=T, scale=F)
+T2_output <- numeric(B)
+
+for(i in 1:B){
+  temp <- rand_out_scale[sample(1:n, replace=T), ]
+  x_bar_temp <- colMeans(temp)
+  S_temp <- var(temp)
+  T2_b <- drop(n * t(x_bar_temp - mu_0) %*% solve(S_temp) %*% (x_bar_temp - mu_0))
+  T2_output[i] <- T2_b
+}
+```
+
+From this, we can view the sampling distribution for our null hypothesis data, and plot our observed test statistic on it.
+
+```{r}
+plot(density(T2_output), main="Null Sampling Distribution")
+abline(v=drop(T2_obs), col="blue")
+sum(T2_output >= drop(T2_obs)) / B
+```
