@@ -283,16 +283,16 @@ p + geom_point(aes(color=factor(cereal_pc_scores3$mcluster))) +
 # question 5
 ##################
 
-x <- as.matrix(read.table("c:/users/philip/schools/tamu/stat_636/homework/t12-8(1).dat"
+X <- as.matrix(read.table("c:/users/philip/schools/tamu/stat_636/homework/t12-8(1).dat"
            , header=F)
               )
 pot_type <- letters[1:4]
 pot_site <- paste("p", 0:6, sep="_")
-rownames(x) <- pot_site
-colnames(x) <- pot_type
-x
+rownames(X) <- pot_site
+colnames(X) <- pot_type
+X
 
-d <- dist(x, method="euclidean")
+d <- dist(X, method="euclidean")
 
 # conduct the multidimensional scaling
 pot_md <- cmdscale(d=d, k=2)
@@ -308,12 +308,12 @@ plot(x, y
      , type="n"
      )
 mtext("site names displayed")
-text(x, y, labels=row.names(x))
+text(x, y, labels=row.names(X))
 
 # part b - construct a biplot and interpret
 # first generate the principal components
 
-pot_pc <- princomp(x, cor=TRUE)
+pot_pc <- princomp(X, cor=TRUE)
 
 biplot(pot_pc
        , main="biplot for pottery data's principal components"
