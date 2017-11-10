@@ -1,8 +1,8 @@
-#outstanding questions:
-#are we expected to use train/test splits?
-#are we expected to provide informative priors for the lda/qda?
 
 # Homework 04
+# Phil Anderson
+# panders2@tamu.edu
+# Due: 12 Nov 17
 
 ##################
 # import third-party modules
@@ -25,7 +25,7 @@ names(hof) <- tolower(names(hof))
 hof2 <- hof %>%
   dplyr::select(id, name, hof, h, hr, rbi, avg, slg, obp)
 
-# create a numeric indicator for HOF status
+# get a sense of hof proportion
 table(hof2$hof) / length(hof2$hof) # check
 # getting into the hall of fame appears to be a relatively rare event
 
@@ -35,7 +35,7 @@ table(hof2$hof) / length(hof2$hof) # check
 
 lda1 <- MASS::lda(hof ~ h + hr + rbi + avg + slg + obp
                   , data=hof2
-                  , prior=c(0.5, 0.5) # non-informative prior
+#                  , prior=c(0.5, 0.5) # non-informative prior
                   , CV=TRUE
                   )
 
@@ -63,7 +63,9 @@ lda_pred$pred_class <- ifelse(lda_pred$pred_y_pr > kappa[i]
                               , 'N'
                               )
 
-pre_conf <- table(lda_pred$true_class, lda_pred$pred_class)
+pre_conf <- table(lda_pred$pred_class, lda_pred$true_class)
+
+caret::confusionMatrix(pre_conf)
 
 conf <- caret::confusionMatrix(pre_conf, positive='Y')
 
@@ -71,7 +73,7 @@ lda_sens[i] <- conf$byClass[1]
 lda_spec[i] <- conf$byClass[2]
 lda_ppv[i] <- conf$byClass[3]
 lda_npv[i] <- conf$byClass[4]
-lda_ba[i] <- ((sens[i] + (3 * spec[i])) / 4)
+lda_ba[i] <- ((lda_sens[i] + (3 * lda_spec[i])) / 4)
   }
 
 ##################
@@ -80,7 +82,7 @@ lda_ba[i] <- ((sens[i] + (3 * spec[i])) / 4)
 
 qda1 <- MASS::qda(hof ~ h + hr + rbi + avg + slg + obp
                   , data=hof2
-                  , prior=c(0.5, 0.5) # non-informative prior
+#                  , prior=c(0.5, 0.5) # non-informative prior
                   , CV=TRUE
                   )
 # match the posterior classification estimates with the true classification
@@ -106,7 +108,7 @@ qda_pred$pred_class <- ifelse(qda_pred$pred_y_pr > kappa[i]
                               , 'N'
                               )
 
-pre_conf <- table(qda_pred$true_class, qda_pred$pred_class)
+pre_conf <- table(qda_pred$pred_class, qda_pred$true_class)
 
 conf <- caret::confusionMatrix(pre_conf, positive='Y')
 
@@ -114,7 +116,7 @@ qda_sens[i] <- conf$byClass[1]
 qda_spec[i] <- conf$byClass[2]
 qda_ppv[i] <- conf$byClass[3]
 qda_npv[i] <- conf$byClass[4]
-qda_ba[i] <- ((sens[i] + (3 * spec[i])) / 4)
+qda_ba[i] <- ((qda_sens[i] + (3 * qda_spec[i])) / 4)
   }
 
 
@@ -123,14 +125,17 @@ qda_ba[i] <- ((sens[i] + (3 * spec[i])) / 4)
 ##################
 
 # Sensitivity 
-
-plot(kappa, lda_sens, type="l", col="dodgerblue", lwd=2
-     , main="Model Sensitivity Comparison"
+plot(x=NULL, y=NULL
+    , xlim=c(min(kappa), max(kappa))
+    , ylim=c(min(lda_sens, qda_sens), 1)
+    , main="Model Sensitivity Comparison"
+    )
+lines(kappa, lda_sens, type="l", col="dodgerblue", lwd=2
      , xlab=expression(kappa)
      , ylab="Sensitivity"
       )
 lines(kappa, qda_sens, type="l", col="forestgreen", lwd=2)
-legend(0.35, 0.2
+legend(0.35, 0.35
        , c("LDA", "QDA")
        , lty=c(1,1)
        , lwd=c(2,2)
@@ -138,14 +143,18 @@ legend(0.35, 0.2
        )
 
 # Specificity 
-
-plot(kappa, lda_spec, type="l", col="dodgerblue", lwd=2
+plot(x=NULL, y=NULL
+    , xlim=c(min(kappa), max(kappa))
+    , ylim=c(min(lda_spec, qda_spec), 1)
+    , main="Model Specificity Comparison"
+    )
+lines(kappa, lda_spec, type="l", col="dodgerblue", lwd=2
      , main="Model Specificity Comparison"
      , xlab=expression(kappa)
      , ylab="Specificity"
       )
 lines(kappa, qda_spec, type="l", col="forestgreen", lwd=2)
-legend(0.35, 0.996
+legend(0.05, 0.983
        , c("LDA", "QDA")
        , lty=c(1,1)
        , lwd=c(2,2)
@@ -154,9 +163,12 @@ legend(0.35, 0.996
 
 
 # Positive Predictive Value 
-
-plot(kappa, lda_ppv, type="l", col="dodgerblue", lwd=2
+plot(x=NULL, y=NULL
+     , xlim=c(min(kappa), max(kappa))
+     , ylim=c(min(lda_ppv, qda_ppv) , 1)
      , main="Model PPV Comparison"
+     )
+lines(kappa, lda_ppv, type="l", col="dodgerblue", lwd=2
      , xlab=expression(kappa)
      , ylab="PPV"
       )
@@ -170,14 +182,17 @@ legend(0.35, 0.91
 
 
 # Negative Predictive Value 
-
-plot(kappa, lda_npv, type="l", col="dodgerblue", lwd=2
+plot(x=NULL, y=NULL
+     , xlim=c(min(kappa), max(kappa))
+     , ylim=c(min(lda_npv, qda_npv) , 1)
      , main="Model NPV Comparison"
+    )
+lines(kappa, lda_npv, type="l", col="dodgerblue", lwd=2
      , xlab=expression(kappa)
      , ylab="NPV"
       )
 lines(kappa, qda_npv, type="l", col="forestgreen", lwd=2)
-legend(0.35, 0.70
+legend(0.35, 0.89
        , c("LDA", "QDA")
        , lty=c(1,1)
        , lwd=c(2,2)
@@ -185,14 +200,17 @@ legend(0.35, 0.70
        )
 
 # Balanced Accuracy
-
-plot(kappa, lda_ba, type="l", col="dodgerblue", lwd=2
+plot(x=NULL, y=NULL
+     , xlim=c(min(kappa), max(kappa))
+     , ylim=c(min(lda_ba, qda_ba) , 1)
      , main="Model Balanced Accuracy Comparison"
+    )
+lines(kappa, lda_ba, type="l", col="dodgerblue", lwd=2
      , xlab=expression(kappa)
-     , ylab="BA"
+     , ylab="Balanced Accuracy"
       )
 lines(kappa, qda_ba, type="l", col="forestgreen", lwd=2)
-legend(0.35, 0.79
+legend(0.35, 0.98
        , c("LDA", "QDA")
        , lty=c(1,1)
        , lwd=c(2,2)
@@ -204,13 +222,26 @@ legend(0.35, 0.79
 # Best choice of kappa
 ##################
 which.max(lda_ba)
-lda_sens[which.max(lda_ba)]
-lda_spec[which.max(lda_ba)]
-lda_ppv[which.max(lda_ba)]
-lda_sens[which.max(lda_ba)]
+lda_final <- data.frame(
+                kappa[which.max(lda_ba)]
+                , lda_sens[which.max(lda_ba)]
+               , lda_spec[which.max(lda_ba)]
+               , lda_ppv[which.max(lda_ba)]
+               , lda_sens[which.max(lda_ba)]
+               )
+names(lda_final) <- c("Kappa" , "Sensitivity", "Specificity",
+                      "PPV", "NPV")
 
 which.max(qda_ba)
-qda_sens[which.max(qda_ba)]
-qda_spec[which.max(qda_ba)]
-qda_ppv[which.max(qda_ba)]
-qda_sens[which.max(qda_ba)]
+qda_final <- data.frame(
+              kappa[which.max(qda_ba)]
+              , qda_sens[which.max(qda_ba)]
+              , qda_spec[which.max(qda_ba)]
+              , qda_ppv[which.max(qda_ba)]
+              , qda_sens[which.max(qda_ba)]
+)
+names(qda_final) <- c("Kappa", "Sensitivity", "Specificity",
+                      "PPV", "NPV")
+
+print(lda_final)
+print(qda_final)
