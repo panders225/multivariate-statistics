@@ -35,7 +35,6 @@ table(hof2$hof) / length(hof2$hof) # check
 
 lda1 <- MASS::lda(hof ~ h + hr + rbi + avg + slg + obp
                   , data=hof2
-#                  , prior=c(0.5, 0.5) # non-informative prior
                   , CV=TRUE
                   )
 
@@ -65,8 +64,6 @@ lda_pred$pred_class <- ifelse(lda_pred$pred_y_pr > kappa[i]
 
 pre_conf <- table(lda_pred$pred_class, lda_pred$true_class)
 
-caret::confusionMatrix(pre_conf)
-
 conf <- caret::confusionMatrix(pre_conf, positive='Y')
 
 lda_sens[i] <- conf$byClass[1]
@@ -82,7 +79,6 @@ lda_ba[i] <- ((lda_sens[i] + (3 * lda_spec[i])) / 4)
 
 qda1 <- MASS::qda(hof ~ h + hr + rbi + avg + slg + obp
                   , data=hof2
-#                  , prior=c(0.5, 0.5) # non-informative prior
                   , CV=TRUE
                   )
 # match the posterior classification estimates with the true classification
@@ -204,11 +200,10 @@ plot(x=NULL, y=NULL
      , xlim=c(min(kappa), max(kappa))
      , ylim=c(min(lda_ba, qda_ba) , 1)
      , main="Model Balanced Accuracy Comparison"
-    )
-lines(kappa, lda_ba, type="l", col="dodgerblue", lwd=2
      , xlab=expression(kappa)
-     , ylab="Balanced Accuracy"
-      )
+     , ylab="CV-Based Balanced Accuracy"
+    )
+lines(kappa, lda_ba, type="l", col="dodgerblue", lwd=2)
 lines(kappa, qda_ba, type="l", col="forestgreen", lwd=2)
 legend(0.35, 0.98
        , c("LDA", "QDA")
@@ -224,24 +219,26 @@ legend(0.35, 0.98
 which.max(lda_ba)
 lda_final <- data.frame(
                 kappa[which.max(lda_ba)]
+                , lda_ba[which.max(lda_ba)]
                 , lda_sens[which.max(lda_ba)]
                , lda_spec[which.max(lda_ba)]
                , lda_ppv[which.max(lda_ba)]
                , lda_sens[which.max(lda_ba)]
                )
-names(lda_final) <- c("Kappa" , "Sensitivity", "Specificity",
+names(lda_final) <- c("Kappa" , "Balanced Accuracy", "Sensitivity", "Specificity",
                       "PPV", "NPV")
 
 which.max(qda_ba)
 qda_final <- data.frame(
               kappa[which.max(qda_ba)]
+              , qda_ba[which.max(qda_ba)]
               , qda_sens[which.max(qda_ba)]
               , qda_spec[which.max(qda_ba)]
               , qda_ppv[which.max(qda_ba)]
               , qda_sens[which.max(qda_ba)]
 )
-names(qda_final) <- c("Kappa", "Sensitivity", "Specificity",
+names(qda_final) <- c("Kappa", "Balanced Accuracy", "Sensitivity", "Specificity",
                       "PPV", "NPV")
 
-print(lda_final)
-print(qda_final)
+print(t(lda_final))
+print(t(qda_final))
