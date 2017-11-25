@@ -59,6 +59,18 @@ for (i in length(kappa)){
 }
 
 
+plot(kappa, bacc_lda, type="l", col="blue", ylab="accuracy", ylim=c(0,1))
+lines(kappa, bacc_qda, col="green")
 
+(ii_lda <- which.max(bacc_lda))
+(ii_qda <-which.max(bacc_qda))
 
+sens_lda[ii_lda]
+spec_lda[ii_lda]
+ppv_lda[ii_lda]
+npv_lda[ii_lda]
 
+sens_qda[ii_qda]
+spec_qda[ii_qda]
+ppv_qda[ii_qda]
+npv_qda[ii_qda]
