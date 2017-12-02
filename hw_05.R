@@ -39,8 +39,6 @@ lin_dat <- cbind(Y, X) %>% data.frame()
 #  function for leave-one-out cv (LOOCV)
 ##################
 
-
-# for holding the MSE values
 loocv_lm <- function(x) {
   # input is the data frame for use in linear regression
   # create a holding vector for our squared error
@@ -115,6 +113,28 @@ loo_results$MSE
 abline(v=loo_results$MSE)
 
 
+# above approach was incorrect.  Fixing it here
+
+loo_bootsrap2 <- function(X, B=1000) {
+
+  bs_mse <- numeric(B)
+
+  for (i in 1:B){
+    set.seed(1738+i)
+    hold_dat <- X[sample(x=1:nrow(X), replace=T) , ]
+    hold_mod <- lm(Y ~ .
+                   , data=hold_dat)
+    hold_predict <- predict(hold_mod, hold_dat)
+
+    bs_mse[i] <- mean((hold_dat$Y - hold_predict)**2)
+  }
+
+ return(bs_mse)
+
+}
+
+round_two <- loo_bootsrap2(X=lin_dat)
+sd(round_two)
 
 ##################
 # Question 2A - determine the optimal value of lambda
