@@ -156,9 +156,9 @@ cv_output <- glmnet::cv.glmnet(
 # see how the mean of the MSE compares to what I got
 mean(cv_output$cvm)
 loo_results$MSE
-
-
-##################
+plot(cv_output)
+cv_output$nzero
+#################
 # Question 2B - use LOOCV and glmnet to estimate LASSO MSE
 ##################
 
@@ -211,6 +211,53 @@ glmnet_out$MSE
 ##################
 # Question 2C - bootstrap the sd of the MSE
 ##################
+
+loo_bootstrap_glmnet <- function(X, Y, lambda_opt, B=1000) {
+  ###
+  # Parameters:
+  # X: matrix.  Holds all of the predictor variables.
+  # Y: matrix. dim=nx1.  Holds our response variable.
+  # B: numeric.  Number of bootstrap replications.  Defaults to 1000
+  ###
+
+  # holding vector
+  bs_mse <- numeric(B)
+
+  # loop it
+  for (i in 1:B) {
+    # set seed for replicability
+    set.seed(1738 + 5*i)
+    # create sample index
+    sample_rows <- sample(1:nrow(X), replace=T)
+    # sample our predictors
+    hold_mat <- X[sample_rows ,]
+    # sample our response
+    hold_resp <- Y[sample_rows, ]
+    # form our model
+    lasso_mod <- glmnet(x=hold_mat
+                        , y=hold_resp
+                        , family="gaussian"
+                        , alpha=1
+                        , lambda=lambda_opt
+                        )
+
+    # make a prediction on our sampled data
+    lasso_pred <- predict(lasso_mod
+                          , newx=hold_mat
+                          , s=lambda_opt)[, 1, drop=TRUE]
+    # record our MSE
+    bs_mse[i] <- mean((hold_resp - lasso_pred)**2)
+    # end loop
+  }
+
+  return(bs_mse)
+
+}
+
+glmnet_boot <- loo_bootstrap_glmnet(X=X, Y=Y, lambda_opt=cv_lambda)
+sd(glmnet_boot)
+
+
 
 glmnet_boot <- loo_bootstrap(x=glmnet_out$sqr_err)
 
