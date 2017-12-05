@@ -66,7 +66,7 @@ loo_bootstrap <- function(X, mod_form, B=1000) {
     # make a prediction on the sampled data set
     pred <- predict(hold_mod, hold_dat)
     # mse
-    bs_mse[i] <- mean((hold_dat$Y - pred)**2)
+    bs_mse[i] <- mean((hold_dat[,1] - pred)**2, na.rm=T)
 
   }
 
